@@ -13,10 +13,29 @@ impl Config {
         if args.len() < 3 {
             return Err("not enough arguments");
         }
-        let query = args[1].clone();
-        let file_path = args[2].clone();
 
-        let ignore_case = env::var("IGNORE_CASE").is_ok();
+        let query: String;
+        let file_path: String;
+        let mut ignore_case = env::var("IGNORE_CASE").is_ok();
+
+        if !ignore_case {
+            if args[1][0..1].eq_ignore_ascii_case("-") {
+                match &args[1][1..2] {
+                    "i" => ignore_case = true,
+                    _ => {
+                        return Err("argument doesn't exist");
+                    },
+                }
+            }
+        }
+
+        if ignore_case {
+            query = args[2].clone();
+            file_path = args[3].clone();
+        } else {
+            query = args[1].clone();
+            file_path = args[2].clone();
+        }
 
         Ok(Config {
             query,
@@ -84,6 +103,20 @@ Pick three.";
 
     #[test]
     fn case_insensitive() {
+        let query = "rUsT";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.
+Trust me.";
+
+        assert_eq!(vec!["Rust:", "Trust me."], search_case_insensitive(query, contents));
+    }
+
+    #[test]
+    fn ignore_case_argument() {
+
+        let argument = "-i";
         let query = "rUsT";
         let contents = "\
 Rust:
