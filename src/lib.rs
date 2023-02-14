@@ -16,26 +16,34 @@ impl Config {
 
         let query: String;
         let file_path: String;
-        let mut ignore_case = env::var("IGNORE_CASE").is_ok();
 
-        if !ignore_case {
-            if args[1][0..1].eq_ignore_ascii_case("-") {
-                match &args[1][1..2] {
-                    "i" => ignore_case = true,
-                    _ => {
-                        return Err("argument doesn't exist");
-                    },
+        let mut keywords = Vec::new();
+        let mut flags = Vec::new();
+
+        let mut ignore_case = env::var("IGNORE_CASE").is_ok();
+        
+        for arg in args {
+            if arg[0..1].eq_ignore_ascii_case("-") { 
+                for flag in arg.chars() {
+                    if flag.eq_ignore_ascii_case(&'-') {
+                        continue;
+                    }
+                    flags.push(flag);
                 }
+            } else {
+                keywords.push(arg);
             }
         }
 
-        if ignore_case {
-            query = args[2].clone();
-            file_path = args[3].clone();
-        } else {
-            query = args[1].clone();
-            file_path = args[2].clone();
+        for flag in flags {
+            match flag {
+                'i' => ignore_case = true,
+                _ => return Err("invalid argument flag"),
+            }
         }
+
+        query = keywords[1].clone();
+        file_path = keywords[2].clone();
 
         Ok(Config {
             query,
