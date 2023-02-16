@@ -145,14 +145,11 @@ Trust me.";
 
     #[test]
     fn get_keywords_and_opts_from_args() {
-        let args = &["-i".to_string(), "to".to_string(), "sample.txt".to_string()];
 
-        let query1 = String::from("to");
-        let query2 = String::from("sample.txt");
-        let query = vec![&query1, &query2];
+        let args = ["target/debug/minigrep -i to sample.txt".to_string()];
+        let query = vec![&"to".to_string(), &"sample.txt".to_string()];
+        let contents = vec!['c'];
 
-        let contents = vec!['i'];
-
-        assert_eq!(parse_args(args), (query, contents));
+        assert_eq!(parse_args(&args), (query, contents));
     }
 }
