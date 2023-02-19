@@ -9,30 +9,20 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn build(args: &[String]) -> Result<Config, String>{
-        if args.len() < 3 {
-            return Err(String::from("not enough arguments"));
-        }
+    pub fn build(mut args: impl Iterator<Item = String>) -> Result<Config, String>{
+        args.next();
 
-        let query: String;
-        let file_path: String;
-
-        let keywords: Vec<&String>;
-        let flags: Vec<char>;
-
-        let mut ignore_case = env::var("IGNORE_CASE").is_ok();
+        let ignore_case = env::var("IGNORE_CASE").is_ok();
         
-        (keywords, flags) = parse_args(args);
+        let query = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a query string".to_string()),
+        };
 
-        for flag in flags {
-            match flag {
-                'i' => ignore_case = true,
-                flag => return Err(format!("invalid argument flag: {flag}")),
-            }
-        }
-
-        query = keywords[1].clone();
-        file_path = keywords[2].clone();
+        let file_path = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a file path".to_string()),
+        };
 
         Ok(Config {
             query,
@@ -58,49 +48,18 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>>{
     Ok(())
 }
 
-pub fn parse_args(args: &[String]) -> (Vec<&String>, Vec<char>) {
-    let mut keywords = Vec::new();
-    let mut flags = Vec::new();
-
-    for arg in args {
-        if arg[0..1].eq_ignore_ascii_case("-") { 
-            for flag in arg.chars() {
-                if flag.eq_ignore_ascii_case(&'-') {
-                    continue;
-                }
-                flags.push(flag);
-            }
-        } else {
-            keywords.push(arg);
-        }
-    }
-
-    (keywords, flags)
-}
-
 pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    let mut results = Vec::new();
-
-    for line in contents.lines() {
-        if line.contains(query) {
-            results.push(line);
-        }
-    }
-
-    results
+    contents
+        .lines()
+        .filter(|line| line.contains(query))
+        .collect()
 }
 
 pub fn search_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    let query = query.to_lowercase();
-    let mut results = Vec::new();
-
-    for line in contents.lines() {
-        if line.to_lowercase().contains(&query) {
-            results.push(line);
-        }
-    }
-
-    results
+    contents
+        .lines()
+        .filter(|line| line.to_lowercase().contains(&query.to_lowercase()))
+        .collect()
 }
 
 #[cfg(test)]
@@ -141,18 +100,5 @@ Pick three.
 Trust me.";
 
         assert_eq!(vec!["Rust:", "Trust me."], search_case_insensitive(query, contents));
-    }
-
-    #[test]
-    fn get_keywords_and_opts_from_args() {
-        let args = &["-i".to_string(), "to".to_string(), "sample.txt".to_string()];
-
-        let query1 = String::from("to");
-        let query2 = String::from("sample.txt");
-        let query = vec![&query1, &query2];
-
-        let contents = vec!['i'];
-
-        assert_eq!(parse_args(args), (query, contents));
     }
 }
